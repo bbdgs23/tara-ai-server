@@ -124,9 +124,7 @@ class Predictor(BasePredictor):
                 "prompt": "person giving pet piggyback ride, playful moment, indoor soft lighting, joyful interaction",
                 "background": "home",
                 "interaction": "piggyback"
-            }
-        ]
-        return np.random.choice(scenes)
+            },
             {
                 "prompt": "person cuddling with pet on a window seat, soft natural lighting, peaceful atmosphere, morning light through window",
                 "background": "window seat area",
