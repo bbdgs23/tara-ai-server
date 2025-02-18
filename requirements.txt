@@ -6,3 +6,5 @@ segment-anything
 numpy
 Pillow
 opencv-python-headless
+replicate
+requests
