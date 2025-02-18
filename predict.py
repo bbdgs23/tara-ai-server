@@ -4,20 +4,22 @@ from cog import BasePredictor, Input, Path
 import numpy as np
 import cv2
 from segment_anything import sam_model_registry, SamPredictor
-from diffusers import StableDiffusionXLInpaintPipeline
+import replicate
+import os
+import requests
+from io import BytesIO
 
 class Predictor(BasePredictor):
     def setup(self):
-        # SDXL 모델 초기화
-        self.pipe = StableDiffusionXLInpaintPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-xl-base-1.0", 
-            torch_dtype=torch.float16
-        ).to("cuda")
-        
-        # SAM 모델 초기화 (vit_h로 업그레이드)
+        # SAM 모델 초기화 (vit_h 사용)
         self.sam = sam_model_registry["vit_h"](checkpoint="sam_vit_h_4b8939.pth")
         self.sam.to(device="cuda")
         self.predictor = SamPredictor(self.sam)
+        
+        # Replicate API 토큰 설정
+        self.api_token = os.environ.get('REPLICATE_API_TOKEN')
+        if not self.api_token:
+            raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
 
     def generate_interaction_prompt(self):
         interactions = [
@@ -48,16 +50,13 @@ class Predictor(BasePredictor):
     ) -> Path:
         # 이미지 전처리
         person = Image.open(person_image).convert("RGB")
-        pet = Image.open(pet_image).convert("RGB")
         
         # 이미지 리사이즈
         target_size = (512, 512)
         person = person.resize(target_size, Image.LANCZOS)
-        pet = pet.resize(target_size, Image.LANCZOS)
 
         # SAM으로 객체 분할
         person_np = np.array(person)
-        pet_np = np.array(pet)
         
         self.predictor.set_image(person_np)
         person_mask = self.predictor.predict(
@@ -71,26 +70,44 @@ class Predictor(BasePredictor):
         person_mask_idx = np.argmax([mask.sum() for mask in person_mask])
         person_mask = person_mask[person_mask_idx:person_mask_idx+1]
 
-        # 마스킹된 이미지 생성
-        person_masked = person_np.copy()
-        person_masked[~person_mask[0]] = [0, 0, 0]
+        # 마스크 이미지 생성
+        mask_image = Image.fromarray((~person_mask[0] * 255).astype(np.uint8))
+        
+        # 이미지를 임시 파일로 저장 (Replicate API 요구사항)
+        temp_image_path = "/tmp/input_image.png"
+        temp_mask_path = "/tmp/mask_image.png"
+        person.save(temp_image_path)
+        mask_image.save(temp_mask_path)
 
-        # 상호작용 프롬프트 생성
+        # 프롬프트 생성
         interaction_prompt = self.generate_interaction_prompt()
 
-        # SDXL로 최종 이미지 생성
-        result = self.pipe(
-            prompt=interaction_prompt,
-            negative_prompt="low quality, bad composition, unnatural pose, deformed, distorted, disfigured, bad anatomy, blurry",
-            image=Image.fromarray(person_masked),
-            mask_image=Image.fromarray((~person_mask[0] * 255).astype(np.uint8)),
-            num_inference_steps=25,  # 스텝 수 증가
-            strength=0.8,
-            guidance_scale=7.5
-        ).images[0]
+        try:
+            # Replicate API를 통한 이미지 생성
+            output = replicate.run(
+                "stability-ai/stable-diffusion-3.5-large:9143d117bc61aa93ac388d31e1fee181e01a5c98ae31f4018c1e755c0714100f",
+                input={
+                    "prompt": interaction_prompt,
+                    "negative_prompt": "low quality, bad composition, unnatural pose, deformed, distorted, disfigured, bad anatomy, blurry",
+                    "image": open(temp_image_path, "rb"),
+                    "mask": open(temp_mask_path, "rb"),
+                    "num_inference_steps": 25,
+                    "scheduler": "K_EULER",
+                    "guidance_scale": 7.5
+                }
+            )
 
-        # 최종 이미지 저장
-        output_path = "/tmp/interaction_image.png"
-        result.save(output_path)
-        
-        return Path(output_path)
+            # 결과 이미지 다운로드 및 저장
+            output_path = "/tmp/interaction_image.png"
+            response = requests.get(output[0])
+            if response.status_code == 200:
+                with open(output_path, 'wb') as f:
+                    f.write(response.content)
+            else:
+                raise Exception(f"Failed to download image: {response.status_code}")
+
+            return Path(output_path)
+
+        except Exception as e:
+            print(f"Error during image generation: {str(e)}")
+            raise
