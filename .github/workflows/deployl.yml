@@ -17,7 +17,7 @@ jobs:
 
       - name: Push to Replicate
         env:
-          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          REPLICATE_AUTH_TOKEN: ${{ secrets.REPLICATE_AUTH_TOKEN }}
         run: |
-          echo "$REPLICATE_API_TOKEN" | cog login --token-stdin
+          echo "$REPLICATE_AUTH_TOKEN" | cog login --token-stdin
           cog push r8.im/yourusername/your-model-name
