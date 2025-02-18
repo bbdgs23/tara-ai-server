@@ -11,15 +11,34 @@ from io import BytesIO
 
 class Predictor(BasePredictor):
     def setup(self):
+    import torch
+    
+    # CUDA 및 디바이스 디버깅 정보 출력
+    print("CUDA 사용 가능 여부:", torch.cuda.is_available())
+    print("CUDA 디바이스 수:", torch.cuda.device_count())
+    
+    # 동적으로 디바이스 선택
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"사용할 디바이스: {device}")
+
+    try:
         # SAM 모델 초기화 (vit_h 사용)
         self.sam = sam_model_registry["vit_h"](checkpoint="sam_vit_h_4b8939.pth")
-        self.sam.to(device="cuda")
+        self.sam.to(device)  # 동적 디바이스 할당
         self.predictor = SamPredictor(self.sam)
         
-        # Replicate API 토큰 설정
-        self.api_token = os.environ.get('REPLICATE_API_TOKEN')
-        if not self.api_token:
-            raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
+        print("SAM 모델 초기화 완료")
+    except Exception as e:
+        print(f"SAM 모델 초기화 중 오류 발생: {e}")
+        raise
+    
+    # Replicate API 토큰 설정
+    self.api_token = os.environ.get('REPLICATE_API_TOKEN')
+    if not self.api_token:
+        print("경고: REPLICATE_API_TOKEN 환경변수가 설정되지 않았습니다.")
+        raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
+    
+    print("Replicate API 토큰 확인 완료")
             
     def generate_scene(self):
         """Generate random interaction scene and background"""
