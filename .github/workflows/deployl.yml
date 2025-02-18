@@ -20,4 +20,4 @@ jobs:
           REPLICATE_AUTH_TOKEN: ${{ secrets.REPLICATE_AUTH_TOKEN }}
         run: |
           echo "$REPLICATE_AUTH_TOKEN" | cog login --token-stdin
-          cog push r8.im/yourusername/your-model-name
+          cog push r8.im/bbdgs23/tara-photocard
