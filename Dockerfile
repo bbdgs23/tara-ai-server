@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# 환경 변수 설정
+ENV REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+
 # Python 패키지 설치
 COPY requirements.txt .
 RUN pip install -r requirements.txt
