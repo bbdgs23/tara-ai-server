@@ -6,7 +6,7 @@ build:
     - "libgl1-mesa-glx"
     - "libglib2.0-0"
   python_packages:
-    - "numpy<2.0.0"
+    - "numpy==1.24.3"
     - "torch==2.0.0"
     - "diffusers"
     - "transformers"
@@ -15,5 +15,7 @@ build:
     - "numpy"
     - "Pillow"
     - "opencv-python-headless"
+    - "torchvision==0.15.0"
+    - "replicate"
 
 predict: "predict.py:Predictor"
