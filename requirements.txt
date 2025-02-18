@@ -3,10 +3,10 @@ transformers
 accelerate
 diffusers
 segment-anything
-numpy<2.0.0  # NumPy 2.x 호환성 문제로 인해 1.x 버전 고정
+numpy==1.24.3
 Pillow
 opencv-python-headless
 replicate
 requests
 torchvision  # 명시적으로 추가
-pybind11>=2.12  # NumPy 2.0 호환을 위해 추가
+pybind11>=2.12
