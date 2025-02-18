@@ -1,0 +1,8 @@
+torch>=2.0.0
+transformers
+accelerate
+diffusers
+segment-anything
+numpy
+Pillow
+opencv-python-headless
