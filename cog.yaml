@@ -15,4 +15,4 @@ build:
     - "Pillow"
     - "opencv-python-headless"
 
-predict: "predict:Predictor"
+predict: "predict.py:Predictor"
