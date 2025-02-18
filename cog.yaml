@@ -6,6 +6,7 @@ build:
     - "libgl1-mesa-glx"
     - "libglib2.0-0"
   python_packages:
+    - "numpy<2.0.0"
     - "torch==2.0.0"
     - "diffusers"
     - "transformers"
